@@ -9,14 +9,23 @@ st.title("📈 Live NIFTY Option Chain – Zerodha API")
 
 load_dotenv()
 api_key = os.getenv("Z_API_KEY")
-access_token = os.getenv("Z_ACCESS_TOKEN")
+
+# Add a text input to enter access token manually at runtime
+access_token_input = st.text_input("Enter Zerodha Access Token (leave blank to use .env token)", type="password")
+
+# Use access token from input if provided, else from .env
+access_token = access_token_input.strip() if access_token_input else os.getenv("Z_ACCESS_TOKEN")
+
+if not access_token:
+    st.error("⚠️ Access token is required. Please enter your Zerodha access token.")
+    st.stop()
 
 # Zerodha session
 kite = KiteConnect(api_key=api_key)
 try:
     kite.set_access_token(access_token)
 except Exception as e:
-    st.error("❌ Access token invalid or expired. Run the token generator.")
+    st.error(f"❌ Access token invalid or expired. Please generate a new token. Error: {str(e)}")
     st.stop()
 
 # Cache instruments list
