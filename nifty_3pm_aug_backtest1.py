@@ -1101,3 +1101,131 @@ if not st.session_state.trade_log_df.empty:
     )
 else:
     st.write("No trade log data available yet.")
+
+
+import streamlit as st
+
+st.markdown("""
+# 📘 General Setup
+
+**Instrument:** NIFTY 50 Index Options  
+**Option Selection:** Nearest ITM option  
+- Bullish → Nearest ITM **CALL**  
+- Bearish → Nearest ITM **PUT**  
+
+**Expiry:** Nearest weekly expiry  
+**Quantity:** 10 lots (750 units total)  
+**Candle timeframe:** 15-minute  
+
+**Session (IST):**  
+- Market open: **09:15**  
+- First candle closes: **09:30**  
+- Reference Base Candle: **15:00–15:15 (previous day)**  
+
+---
+
+## 🟦 Step 1 – Define Base Zone (Day 0)
+- Identify **Candle 0** = 15:00–15:15 candle on previous trading day.  
+- Compute:  
+  - `base_open = O(15:00)`  
+  - `base_close = C(15:15)`  
+  - `base_low = min(base_open, base_close)`  
+  - `base_high = max(base_open, base_close)`  
+- Define **Base Zone** = `[base_low, base_high]`  
+
+---
+
+## 🟦 Step 2 – First Candle on Day 1
+- On Day 1, record **Candle 1 = 09:15–09:30**  
+  - `H1 = High`  
+  - `L1 = Low`  
+  - `C1 = Close`  
+
+---
+
+## 🟦 Step 3 – Entry Conditions
+
+### ✅ Condition 1 – Break Above Base Zone on Day 1 Open
+- **Criteria:**  
+  - Candle 1 overlaps Base Zone, **AND**  
+  - `C1 > base_high`  
+- **Action:**  
+  - Wait until price breaks above **H1**  
+  - **Entry:** Buy nearest ITM **CALL** at breakout  
+
+---
+
+### ✅ Condition 2 – Major Gap Down (Below Base Zone)
+- **Criteria:**  
+  - `C1 < base_low` (Candle 1 entirely below Base Zone)  
+- **Action:**  
+  - Mark **H1, L1 of Candle 1** (Reference Candle 2)  
+  - Enter nearest ITM **PUT** if next candle (≥09:30) breaks below **L1**  
+- **Flip Rule (2.7):**  
+  - If later a candle closes above Base Zone → mark that as Candle 2  
+  - Enter nearest ITM **CALL** when a later candle breaks above Candle 2’s high  
+
+---
+
+### ✅ Condition 3 – Major Gap Up (Above Base Zone)
+- **Criteria:**  
+  - `C1 > base_high` (Candle 1 entirely above Base Zone)  
+- **Action:**  
+  - Mark **H1, L1 of Candle 1** (Reference Candle 3)  
+  - Enter nearest ITM **CALL** if next candle breaks above **H1**  
+- **Flip Rule (3.7):**  
+  - If later a candle closes below Base Zone → mark that as Candle 3  
+  - Enter nearest ITM **PUT** when a later candle breaks below Candle 3’s low  
+
+---
+
+### ✅ Condition 4 – Break Below Base Zone on Day 1 Open
+- **Criteria:**  
+  - Candle 1 overlaps Base Zone, **AND**  
+  - `C1 < base_low`  
+- **Action:**  
+  - Wait until price breaks below **L1**  
+  - **Entry:** Buy nearest ITM **PUT** at breakout  
+
+---
+
+## 🟦 Step 4 – Order Management (All Conditions)
+
+- **Entry:** Place stop-entry at trigger price (H1/L1).  
+- **Stop Loss (SL):**  
+  - 10% below entry price (CALL/PUT).  
+  - Implement as **trailing SL**:  
+    - `trail_sl = max(trail_sl, latest_premium * 0.9)`  
+- **Partial Profit:**  
+  - Book **50%** when premium reaches **+10%** of entry.  
+  - Carry remaining 50% with same trailing SL.  
+- **Time Exit:**  
+  - If neither SL nor +10% hit within **16 mins**, exit full position.  
+- **Single Active Trade:**  
+  - Only **1 entry per condition/day**. No overlaps.  
+- **End of Day:**  
+  - Square off open trades by session close.  
+
+---
+
+## 🟦 Step 5 – Technical Notes
+- **Cuts Base Zone:**  
+  - Candle’s **High ≥ base_low AND Low ≤ base_high**.  
+- **Nearest ITM strike selection:**  
+  - For CALL → strike ≤ spot, closest to spot.  
+  - For PUT → strike ≥ spot, closest to spot.  
+- **Signal Priority:**  
+  1. Classify Day 1 Candle 1 → Condition (1–4)  
+  2. Monitor breakout triggers & flip rules  
+
+---
+
+### ✅ Clean End-to-End Strategy Flow
+- **Setup →** Define Base Zone  
+- **Day 1 open →** Classify Candle 1  
+- **Apply →** 1 of 4 Conditions  
+- **Entry Rules →** Confirm breakout  
+- **Risk Management →** SL, trailing SL, partial exit, time exit  
+- **Intraday Only →** No carry forward  
+""")
+
