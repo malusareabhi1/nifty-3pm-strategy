@@ -880,6 +880,20 @@ def trading_signal_all_conditions1(df, quantity=10*750, return_all_signals=False
 
 
 ############or_all_candles(df)  # df = your full OHLC DataFrame
+def get_nearest_itm_option(spot_price, option_type="CALL", strike_step=50):
+    """
+    Returns the nearest ITM strike for given spot price and option type.
+    Example: If spot = 19765 and option_type = CALL → 19750 (nearest ITM call).
+             If spot = 19765 and option_type = PUT  → 19800 (nearest ITM put).
+    """
+    spot_price = round(spot_price / strike_step) * strike_step  # round to nearest strike
+
+    if option_type.upper() == "CALL":
+        return spot_price - strike_step  # ITM Call = one step below spot
+    elif option_type.upper() == "PUT":
+        return spot_price + strike_step  # ITM Put = one step above spot
+    else:
+        raise ValueError("option_type must be either 'CALL' or 'PUT'")
 
 
 
