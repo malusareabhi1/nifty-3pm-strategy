@@ -6,3 +6,4 @@ plotly
 kiteconnect
 python-dotenv
 requests
+streamlit-autorefresh
